@@ -1,0 +1,53 @@
+{
+    "name": "julienlinard/php-validator",
+    "description": "Système de validation avancé pour PHP 8+ avec règles personnalisées, messages multilingues, validation conditionnelle et sanitization",
+    "type": "library",
+    "keywords": [
+        "validator",
+        "validation",
+        "php",
+        "php8",
+        "form-validation",
+        "rules",
+        "multilingual",
+        "sanitization",
+        "csrf"
+    ],
+    "homepage": "https://github.com/julien-lin/php-validator",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Julien Linard",
+            "email": "julien.linard.dev@gmail.com",
+            "homepage": "https://github.com/julien-lin"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/julien-lin/php-validator/issues",
+        "source": "https://github.com/julien-lin/php-validator"
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "JulienLinard\\Validator\\": "src/Validator/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JulienLinard\\Validator\\Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-text"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "version": "1.0.0"
+}
+
