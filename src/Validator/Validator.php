@@ -7,6 +7,7 @@ namespace JulienLinard\Validator;
 use JulienLinard\Validator\Exceptions\InvalidRuleException;
 use JulienLinard\Validator\Rules\RuleInterface;
 use JulienLinard\Validator\Rules\AbstractRule;
+use JulienLinard\Validator\Translations\Translator;
 use JulienLinard\Validator\Rules\RequiredRule;
 use JulienLinard\Validator\Rules\EmailRule;
 use JulienLinard\Validator\Rules\MinRule;
@@ -15,6 +16,27 @@ use JulienLinard\Validator\Rules\NumericRule;
 use JulienLinard\Validator\Rules\UrlRule;
 use JulienLinard\Validator\Rules\InRule;
 use JulienLinard\Validator\Rules\PatternRule;
+use JulienLinard\Validator\Rules\DateRule;
+use JulienLinard\Validator\Rules\BooleanRule;
+use JulienLinard\Validator\Rules\BetweenRule;
+use JulienLinard\Validator\Rules\FileRule;
+use JulienLinard\Validator\Rules\ImageRule;
+use JulienLinard\Validator\Rules\SizeRule;
+use JulienLinard\Validator\Rules\AlphaRule;
+use JulienLinard\Validator\Rules\AlphaNumRule;
+use JulienLinard\Validator\Rules\AlphaDashRule;
+use JulienLinard\Validator\Rules\ConfirmedRule;
+use JulienLinard\Validator\Rules\IpRule;
+use JulienLinard\Validator\Rules\Ipv4Rule;
+use JulienLinard\Validator\Rules\Ipv6Rule;
+use JulienLinard\Validator\Rules\JsonRule;
+use JulienLinard\Validator\Rules\UuidRule;
+use JulienLinard\Validator\Rules\AcceptedRule;
+use JulienLinard\Validator\Rules\FilledRule;
+use JulienLinard\Validator\Rules\BeforeRule;
+use JulienLinard\Validator\Rules\AfterRule;
+use JulienLinard\Validator\Rules\DifferentRule;
+use JulienLinard\Validator\Rules\SameRule;
 
 /**
  * Validateur principal
@@ -37,12 +59,19 @@ class Validator
     private string $locale = 'fr';
 
     /**
+     * @var Translator Traducteur pour les messages d'erreur
+     */
+    private Translator $translator;
+
+    /**
      * @var bool Activer la sanitization automatique
      */
     private bool $sanitize = true;
 
-    public function __construct()
+    public function __construct(string $locale = 'fr')
     {
+        $this->translator = new Translator($locale);
+        $this->locale = $locale;
         $this->registerDefaultRules();
     }
 
@@ -51,14 +80,44 @@ class Validator
      */
     private function registerDefaultRules(): void
     {
-        $this->registerRule(new RequiredRule());
-        $this->registerRule(new EmailRule());
-        $this->registerRule(new MinRule());
-        $this->registerRule(new MaxRule());
-        $this->registerRule(new NumericRule());
-        $this->registerRule(new UrlRule());
-        $this->registerRule(new InRule());
-        $this->registerRule(new PatternRule());
+        $rules = [
+            new RequiredRule(),
+            new EmailRule(),
+            new MinRule(),
+            new MaxRule(),
+            new NumericRule(),
+            new UrlRule(),
+            new InRule(),
+            new PatternRule(),
+            new DateRule(),
+            new BooleanRule(),
+            new BetweenRule(),
+            new FileRule(),
+            new ImageRule(),
+            new SizeRule(),
+            new AlphaRule(),
+            new AlphaNumRule(),
+            new AlphaDashRule(),
+            new ConfirmedRule(),
+            new IpRule(),
+            new Ipv4Rule(),
+            new Ipv6Rule(),
+            new JsonRule(),
+            new UuidRule(),
+            new AcceptedRule(),
+            new FilledRule(),
+            new BeforeRule(),
+            new AfterRule(),
+            new DifferentRule(),
+            new SameRule(),
+        ];
+        
+        foreach ($rules as $rule) {
+            if ($rule instanceof AbstractRule) {
+                $rule->setTranslator($this->translator);
+            }
+            $this->registerRule($rule);
+        }
     }
 
     /**
@@ -66,6 +125,9 @@ class Validator
      */
     public function registerRule(RuleInterface $rule): self
     {
+        if ($rule instanceof AbstractRule) {
+            $rule->setTranslator($this->translator);
+        }
         $this->rules[$rule->getName()] = $rule;
         return $this;
     }
@@ -87,7 +149,24 @@ class Validator
     public function setLocale(string $locale): self
     {
         $this->locale = $locale;
+        $this->translator->setLocale($locale);
+        
+        // Mettre à jour le traducteur de toutes les règles
+        foreach ($this->rules as $rule) {
+            if ($rule instanceof AbstractRule) {
+                $rule->setTranslator($this->translator);
+            }
+        }
+        
         return $this;
+    }
+    
+    /**
+     * Retourne la locale actuelle
+     */
+    public function getLocale(): string
+    {
+        return $this->locale;
     }
 
     /**
@@ -132,6 +211,48 @@ class Validator
 
                 $rule = $this->rules[$ruleName];
                 
+                // Gestion spéciale pour les règles qui nécessitent l'accès aux autres champs
+                if ($ruleName === 'confirmed') {
+                    $confirmationField = $field . '_confirmation';
+                    if (!isset($data[$confirmationField]) || $data[$confirmationField] !== $value) {
+                        $message = $this->getErrorMessage($field, $ruleName, $ruleParams, $rule);
+                        $result->addError($field, $message);
+                    }
+                    continue;
+                }
+                
+                if ($ruleName === 'different' && !empty($ruleParams) && isset($ruleParams[0])) {
+                    $otherField = $ruleParams[0];
+                    if (isset($data[$otherField]) && $data[$otherField] === $value) {
+                        $message = $this->getErrorMessage($field, $ruleName, ['other' => $otherField], $rule);
+                        $result->addError($field, $message);
+                    }
+                    continue;
+                }
+                
+                if ($ruleName === 'same' && !empty($ruleParams) && isset($ruleParams[0])) {
+                    $otherField = $ruleParams[0];
+                    if (!isset($data[$otherField]) || $data[$otherField] !== $value) {
+                        $message = $this->getErrorMessage($field, $ruleName, ['other' => $otherField], $rule);
+                        $result->addError($field, $message);
+                    }
+                    continue;
+                }
+                
+                // Gestion spéciale pour "filled" : si le champ est présent (pas null), il ne doit pas être vide
+                if ($ruleName === 'filled') {
+                    // Si le champ n'est pas présent (null), c'est OK (différent de required)
+                    if ($value === null) {
+                        continue;
+                    }
+                    // Si le champ est présent, vérifier qu'il n'est pas vide
+                    if (!$rule->validate($value, $ruleParams)) {
+                        $message = $this->getErrorMessage($field, $ruleName, $ruleParams, $rule);
+                        $result->addError($field, $message);
+                    }
+                    continue;
+                }
+                
                 // Si la règle est "required", on valide même si la valeur est null
                 // Sinon, on skip si la valeur est null (sauf si required)
                 if ($ruleName !== 'required' && ($value === null || $value === '')) {
@@ -175,15 +296,15 @@ class Validator
             $ruleParams = [];
 
             if (isset($ruleParts[1])) {
-                $params = explode(',', $ruleParts[1]);
-                foreach ($params as $param) {
-                    $param = trim($param);
-                    // Si c'est un tableau (ex: in:value1,value2)
-                    if (strpos($param, ',') !== false) {
-                        $ruleParams = array_map('trim', explode(',', $param));
-                    } else {
-                        $ruleParams[] = $param;
-                    }
+                $paramString = trim($ruleParts[1]);
+                
+                // Pour les règles spéciales qui acceptent des tableaux (ex: in:value1,value2 ou between:min,max)
+                if (in_array($ruleName, ['in', 'between'], true)) {
+                    $params = explode(',', $paramString);
+                    $ruleParams = array_map('trim', $params);
+                } else {
+                    // Pour les autres règles, prendre le paramètre tel quel
+                    $ruleParams[] = $paramString;
                 }
             }
 
@@ -225,9 +346,10 @@ class Validator
             $message = $rule->getMessage($field, $ruleParams);
         }
 
-        // Remplacer les placeholders dans les paramètres
+        // Les placeholders sont déjà remplacés par AbstractRule via le Translator
+        // On garde cette partie pour la compatibilité avec les messages personnalisés
         if ($rule instanceof AbstractRule) {
-            // Extraire les paramètres pour le remplacement
+            // Extraire les paramètres pour le remplacement (si message personnalisé)
             $params = [];
             if (isset($ruleParams[0])) {
                 $params['min'] = $ruleParams[0];
@@ -238,6 +360,10 @@ class Validator
             }
             if (isset($ruleParams['allowed'])) {
                 $params['allowed'] = implode(', ', $ruleParams['allowed']);
+            } elseif ($rule->getName() === 'in' && !empty($ruleParams)) {
+                // Pour la règle "in", formater la liste
+                $allowed = is_array($ruleParams[0]) ? $ruleParams[0] : $ruleParams;
+                $params['allowed'] = implode(', ', $allowed);
             }
 
             $message = str_replace(':field', $field, $message);
