@@ -56,7 +56,7 @@ if ($result->isValid()) {
 
 ## 📋 Fonctionnalités
 
-- ✅ **Règles intégrées** : required, email, min, max, numeric, url, in, pattern
+- ✅ **Règles intégrées** : 30+ règles incluant required, email, min, max, numeric, url, in, pattern, date, boolean, between, file, image, size, alpha, alpha_num, alpha_dash, confirmed, ip, ipv4, ipv6, json, uuid, accepted, filled, before, after, different, same
 - ✅ **Règles personnalisées** : Facile de créer et enregistrer des règles de validation
 - ✅ **Messages multilingues** : Support des messages d'erreur personnalisés
 - ✅ **Sanitization** : Échappement HTML et nettoyage automatique
@@ -126,6 +126,207 @@ Valide qu'une valeur correspond à un pattern regex.
 ```php
 $rules = ['phone' => 'pattern:/^\+?[1-9]\d{1,14}$/'];
 ```
+
+#### Date
+
+Valide qu'un champ contient une date valide.
+
+```php
+$rules = [
+    'birthday' => 'date',                    // N'importe quel format de date valide
+    'created_at' => 'date:Y-m-d H:i:s',     // Format spécifique
+];
+```
+
+#### Boolean
+
+Valide qu'un champ est une valeur booléenne. Accepte : true, false, 1, 0, "1", "0", "true", "false", "yes", "no", "on", "off".
+
+```php
+$rules = ['is_active' => 'boolean'];
+```
+
+#### Between
+
+Valide qu'une valeur est entre deux nombres (pour les numériques) ou a une longueur entre deux valeurs (pour les chaînes).
+
+```php
+$rules = [
+    'age' => 'between:18,65',        // Numérique : entre 18 et 65
+    'title' => 'between:5,100',      // Longueur de chaîne : entre 5 et 100 caractères
+];
+```
+
+#### File
+
+Valide qu'un champ est un fichier uploadé valide.
+
+```php
+$rules = [
+    'document' => 'file',           // N'importe quel fichier
+    'document' => 'file:10485760',  // Max 10MB (en bytes)
+];
+
+// Pour la validation du type MIME, utiliser le format array :
+$rules = [
+    'document' => [
+        'file' => [10485760, ['application/pdf', 'application/msword']]
+    ]
+];
+```
+
+#### Image
+
+Valide qu'un champ est un fichier image valide. Vérifie automatiquement le type MIME et utilise `getimagesize()` pour s'assurer que c'est une vraie image.
+
+```php
+$rules = [
+    'avatar' => 'image',           // N'importe quelle image
+    'avatar' => 'image:10485760',  // Max 10MB (en bytes)
+];
+
+// Pour des types d'image spécifiques, utiliser le format array :
+$rules = [
+    'avatar' => [
+        'image' => [10485760, ['image/jpeg', 'image/png']]  // Taille max d'abord, puis types autorisés
+    ]
+];
+```
+
+#### Size
+
+Valide qu'un champ a une taille exacte (pour les fichiers : bytes, pour les chaînes : caractères, pour les nombres : valeur exacte).
+
+```php
+$rules = [
+    'code' => 'size:6',          // Chaîne : exactement 6 caractères
+    'file' => 'size:1024',        // Fichier : exactement 1024 bytes
+    'count' => 'size:10',        // Nombre : exactement 10
+];
+```
+
+#### Alpha
+
+Valide qu'un champ contient uniquement des lettres (y compris les caractères accentués).
+
+```php
+$rules = ['name' => 'alpha'];
+```
+
+#### Alpha Num
+
+Valide qu'un champ contient uniquement des lettres et des chiffres.
+
+```php
+$rules = ['username' => 'alpha_num'];
+```
+
+#### Alpha Dash
+
+Valide qu'un champ contient uniquement des lettres, chiffres, tirets et underscores.
+
+```php
+$rules = ['slug' => 'alpha_dash'];
+```
+
+#### Confirmed
+
+Valide qu'un champ a un champ de confirmation correspondant (ex: `password_confirmation`).
+
+```php
+$rules = ['password' => 'required|confirmed'];
+// Nécessite que le champ 'password_confirmation' corresponde à 'password'
+```
+
+#### Adresse IP
+
+Valide qu'un champ est une adresse IP valide.
+
+```php
+$rules = [
+    'ip' => 'ip',        // IPv4 ou IPv6
+    'ip' => 'ipv4',      // IPv4 uniquement
+    'ip' => 'ipv6',      // IPv6 uniquement
+];
+```
+
+#### JSON
+
+Valide qu'un champ contient une chaîne JSON valide.
+
+```php
+$rules = ['config' => 'json'];
+```
+
+#### UUID
+
+Valide qu'un champ est un UUID valide (v1-v5).
+
+```php
+$rules = ['id' => 'uuid'];
+```
+
+#### Accepted
+
+Valide qu'un champ est accepté (yes, on, 1, true). Utile pour les cases à cocher et l'acceptation de conditions.
+
+```php
+$rules = ['terms' => 'accepted'];
+```
+
+#### Filled
+
+Valide qu'un champ a une valeur lorsqu'il est présent (différent de required - autorise null si le champ n'est pas présent).
+
+```php
+$rules = ['optional_field' => 'filled'];
+```
+
+#### Before / After
+
+Valide qu'un champ date est avant ou après une autre date.
+
+```php
+$rules = [
+    'start_date' => 'date|before:end_date',
+    'end_date' => 'date|after:start_date',
+    'birthday' => 'date|before:today',  // ou 'before:2024-01-01'
+];
+```
+
+#### Different / Same
+
+Valide qu'un champ est différent de ou identique à un autre champ.
+
+```php
+$rules = [
+    'new_password' => 'different:old_password',
+    'password_confirmation' => 'same:password',
+];
+```
+
+### Support multilingue
+
+Le validateur supporte plusieurs langues (Français, Anglais, Espagnol) nativement.
+
+```php
+// Créer un validateur avec une langue spécifique
+$validator = new Validator('en'); // Anglais
+$validator = new Validator('fr'); // Français (par défaut)
+$validator = new Validator('es'); // Espagnol
+
+// Ou changer la langue après création
+$validator = new Validator();
+$validator->setLocale('en');
+
+// Obtenir la langue actuelle
+$locale = $validator->getLocale(); // Retourne 'en', 'fr', ou 'es'
+```
+
+**Langues supportées :**
+- `fr` - Français (par défaut)
+- `en` - Anglais
+- `es` - Espagnol
 
 ### Messages personnalisés
 

@@ -56,7 +56,7 @@ if ($result->isValid()) {
 
 ## 📋 Features
 
-- ✅ **Built-in Rules**: required, email, min, max, numeric, url, in, pattern
+- ✅ **Built-in Rules**: 30+ rules including required, email, min, max, numeric, url, in, pattern, date, boolean, between, file, image, size, alpha, alpha_num, alpha_dash, confirmed, ip, ipv4, ipv6, json, uuid, accepted, filled, before, after, different, same
 - ✅ **Custom Rules**: Easy to create and register custom validation rules
 - ✅ **Multilingual Messages**: Support for custom error messages
 - ✅ **Sanitization**: Automatic HTML escaping and trimming
@@ -126,6 +126,207 @@ Validates that a value matches a regex pattern.
 ```php
 $rules = ['phone' => 'pattern:/^\+?[1-9]\d{1,14}$/'];
 ```
+
+#### Date
+
+Validates that a field contains a valid date.
+
+```php
+$rules = [
+    'birthday' => 'date',                    // Any valid date format
+    'created_at' => 'date:Y-m-d H:i:s',     // Specific format
+];
+```
+
+#### Boolean
+
+Validates that a field is a boolean value. Accepts: true, false, 1, 0, "1", "0", "true", "false", "yes", "no", "on", "off".
+
+```php
+$rules = ['is_active' => 'boolean'];
+```
+
+#### Between
+
+Validates that a value is between two numbers (for numeric) or has a length between two values (for strings).
+
+```php
+$rules = [
+    'age' => 'between:18,65',        // Numeric: between 18 and 65
+    'title' => 'between:5,100',      // String length: between 5 and 100 characters
+];
+```
+
+#### File
+
+Validates that a field is a valid uploaded file.
+
+```php
+$rules = [
+    'document' => 'file',           // Any file
+    'document' => 'file:10485760',  // Max 10MB (in bytes)
+];
+
+// For MIME type validation, use array format:
+$rules = [
+    'document' => [
+        'file' => [10485760, ['application/pdf', 'application/msword']]
+    ]
+];
+```
+
+#### Image
+
+Validates that a field is a valid image file. Automatically checks MIME type and uses `getimagesize()` to ensure it's a real image.
+
+```php
+$rules = [
+    'avatar' => 'image',           // Any image
+    'avatar' => 'image:10485760',  // Max 10MB (in bytes)
+];
+
+// For specific image types, use array format:
+$rules = [
+    'avatar' => [
+        'image' => [10485760, ['image/jpeg', 'image/png']]  // Max size first, then allowed types
+    ]
+];
+```
+
+#### Size
+
+Validates that a field has an exact size (for files: bytes, for strings: characters, for numbers: exact value).
+
+```php
+$rules = [
+    'code' => 'size:6',          // String: exactly 6 characters
+    'file' => 'size:1024',        // File: exactly 1024 bytes
+    'count' => 'size:10',        // Number: exactly 10
+];
+```
+
+#### Alpha
+
+Validates that a field contains only letters (including accented characters).
+
+```php
+$rules = ['name' => 'alpha'];
+```
+
+#### Alpha Num
+
+Validates that a field contains only letters and numbers.
+
+```php
+$rules = ['username' => 'alpha_num'];
+```
+
+#### Alpha Dash
+
+Validates that a field contains only letters, numbers, dashes and underscores.
+
+```php
+$rules = ['slug' => 'alpha_dash'];
+```
+
+#### Confirmed
+
+Validates that a field has a matching confirmation field (e.g., `password_confirmation`).
+
+```php
+$rules = ['password' => 'required|confirmed'];
+// Requires 'password_confirmation' field to match 'password'
+```
+
+#### IP Address
+
+Validates that a field is a valid IP address.
+
+```php
+$rules = [
+    'ip' => 'ip',        // IPv4 or IPv6
+    'ip' => 'ipv4',      // IPv4 only
+    'ip' => 'ipv6',      // IPv6 only
+];
+```
+
+#### JSON
+
+Validates that a field contains a valid JSON string.
+
+```php
+$rules = ['config' => 'json'];
+```
+
+#### UUID
+
+Validates that a field is a valid UUID (v1-v5).
+
+```php
+$rules = ['id' => 'uuid'];
+```
+
+#### Accepted
+
+Validates that a field is accepted (yes, on, 1, true). Useful for checkboxes and terms acceptance.
+
+```php
+$rules = ['terms' => 'accepted'];
+```
+
+#### Filled
+
+Validates that a field has a value when present (different from required - allows null if field is not present).
+
+```php
+$rules = ['optional_field' => 'filled'];
+```
+
+#### Before / After
+
+Validates that a date field is before or after another date.
+
+```php
+$rules = [
+    'start_date' => 'date|before:end_date',
+    'end_date' => 'date|after:start_date',
+    'birthday' => 'date|before:today',  // or 'before:2024-01-01'
+];
+```
+
+#### Different / Same
+
+Validates that a field is different from or same as another field.
+
+```php
+$rules = [
+    'new_password' => 'different:old_password',
+    'password_confirmation' => 'same:password',
+];
+```
+
+### Multilingual Support
+
+The validator supports multiple languages (French, English, Spanish) out of the box.
+
+```php
+// Create validator with a specific locale
+$validator = new Validator('en'); // English
+$validator = new Validator('fr'); // French (default)
+$validator = new Validator('es'); // Spanish
+
+// Or change locale after creation
+$validator = new Validator();
+$validator->setLocale('en');
+
+// Get current locale
+$locale = $validator->getLocale(); // Returns 'en', 'fr', or 'es'
+```
+
+**Supported locales:**
+- `fr` - French (default)
+- `en` - English
+- `es` - Spanish
 
 ### Custom Messages
 
